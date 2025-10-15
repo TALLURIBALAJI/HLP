@@ -1,0 +1,12 @@
+{
+  "id": { "type": "string" },
+  "title": { "type": "string" },
+  "description": { "type": "string" },
+  "category": { "type": "string" },
+  "urgency": { "type": "string", "enum": ["low", "medium", "high"], "default": "low" },
+  "location": { "type": "string" },
+  "created_at": { "type": "string", "format": "date-time" },
+  "requester": { "type": "string" },
+  "is_anonymous": { "type": "boolean", "default": false },
+  "status": { "type": "string", "enum": ["open", "claimed", "closed"], "default": "open" }
+}

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="8" r="3" fill="#3B82F6"/>
+  <path d="M5 20c1-4 4-6 7-6s6 2 7 6" stroke="#3B82F6" fill="#BBDEFB"/>
+  <text x="12" y="23" font-size="3" text-anchor="middle" fill="#3B82F6">HelpLink</text>
+</svg>

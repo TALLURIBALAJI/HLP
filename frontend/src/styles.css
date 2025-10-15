@@ -1,0 +1,6 @@
+html, body, #root { height: 100%; }
+:root { --primary: #3B82F6; --accent: #F59E0B; }
+
+body { font-family: 'Poppins', sans-serif; margin:0; }
+
+.font-poppins { font-family: 'Poppins', sans-serif; }

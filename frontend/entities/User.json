@@ -1,0 +1,10 @@
+{
+  "karma_points": { "type": "number", "default": 0 },
+  "level": { "type": "number", "default": 1 },
+  "badges": { "type": "array", "items": { "type": "string" }, "default": [] },
+  "avatar_url": { "type": "string" },
+  "phone": { "type": "string" },
+  "location": { "type": "string" },
+  "bio": { "type": "string" },
+  "has_completed_onboarding": { "type": "boolean", "default": false }
+}

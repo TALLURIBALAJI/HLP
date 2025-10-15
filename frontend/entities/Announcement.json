@@ -1,0 +1,8 @@
+{
+  "id": { "type": "string" },
+  "title": { "type": "string" },
+  "body": { "type": "string" },
+  "starts_at": { "type": "string", "format": "date-time" },
+  "ends_at": { "type": "string", "format": "date-time" },
+  "pinned": { "type": "boolean", "default": false }
+}
