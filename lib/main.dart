@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/onboarding.dart';
-import 'screens/home_feed.dart';
+import 'screens/home_shell.dart';
 import 'screens/post_request.dart';
 import 'screens/book_exchange.dart';
 import 'screens/chat_list.dart';
@@ -25,7 +25,7 @@ class HelpLinkApp extends StatelessWidget {
       theme: AppTheme.themeData(),
       home: const OnboardingScreen(),
       routes: {
-        '/home': (_) => const HomeFeedScreen(),
+        '/home': (_) => const HomeShell(),
         '/post': (_) => const PostRequestScreen(),
         '/books': (_) => const BookExchangeScreen(),
         '/chats': (_) => const ChatListScreen(),

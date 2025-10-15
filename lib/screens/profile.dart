@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
-import '../widgets/shared.dart';
+// ...existing imports...
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -103,8 +103,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
 
           const Spacer(),
-          // Bottom nav
-          const HelpLinkBottomNav(index: 4),
         ],
       ),
     );

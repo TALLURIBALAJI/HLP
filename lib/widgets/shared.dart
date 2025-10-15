@@ -6,26 +6,15 @@ import 'ui_components.dart';
 
 class HelpLinkBottomNav extends StatelessWidget {
   final int index;
-  const HelpLinkBottomNav({super.key, required this.index});
+  final ValueChanged<int>? onTap;
+  const HelpLinkBottomNav({super.key, required this.index, this.onTap});
 
   void _onTap(BuildContext context, int i) {
-    switch (i) {
-      case 0:
-        Navigator.pushReplacementNamed(context, '/home');
-        break;
-      case 1:
-        Navigator.pushNamed(context, '/post');
-        break;
-      case 2:
-        Navigator.pushNamed(context, '/chats');
-        break;
-      case 3:
-        Navigator.pushNamed(context, '/leaderboard');
-        break;
-      case 4:
-        Navigator.pushReplacementNamed(context, '/profile');
-        break;
-    }
+    if (onTap != null) return onTap!(i);
+    // Default behavior: open the app shell at the requested tab so the bottom
+    // navigation remains visible. We use pushReplacementNamed to avoid
+    // stacking multiple shells.
+    Navigator.pushReplacementNamed(context, '/home', arguments: i);
   }
 
   @override
