@@ -1,0 +1,11 @@
+{
+  "firebaseUid": "test123",
+  "title": "Test Request",
+  "description": "Test Description",
+  "category": "Food",
+  "urgency": "Medium",
+  "location": {
+    "address": "Test Location",
+    "coordinates": [0, 0]
+  }
+}

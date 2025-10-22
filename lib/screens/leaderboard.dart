@@ -1,14 +1,68 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../theme.dart';
+import '../services/api_config.dart';
 
-class LeaderboardScreen extends StatelessWidget {
+class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({super.key});
 
   @override
+  State<LeaderboardScreen> createState() => _LeaderboardScreenState();
+}
+
+class _LeaderboardScreenState extends State<LeaderboardScreen> {
+  List<dynamic> _leaderboard = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLeaderboard();
+  }
+
+  Future<void> _loadLeaderboard() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/users/leaderboard/top?limit=100'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(ApiConfig.connectionTimeout);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _leaderboard = data['data'] ?? [];
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      print('Error loading leaderboard: $e');
+      setState(() => _isLoading = false);
+    }
+  }
+
+  String _getBadgeName(int karma) {
+    if (karma >= 601) return 'Community Legend';
+    if (karma >= 301) return 'Compassion Leader';
+    if (karma >= 151) return 'Community Contributor';
+    if (karma >= 51) return 'Active Supporter';
+    return 'Beginner Helper';
+  }
+
+  String _getBadgeEmoji(int karma) {
+    if (karma >= 601) return '🌟';
+    if (karma >= 301) return '💎';
+    if (karma >= 151) return '🏆';
+    if (karma >= 51) return '🎖️';
+    return '🏅';
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final top = [
-      {'name': 'TALLURI BALAJI', 'karma': '0', 'subtitle': 'Community Helper'}
-    ];
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -29,21 +83,146 @@ class LeaderboardScreen extends StatelessWidget {
             ]),
           ),
           const SizedBox(height: 12),
-          Row(children: [Icon(Icons.emoji_events, color: AppTheme.warmGradient.colors.first), const SizedBox(width: 8), Text('Full Rankings', style: const TextStyle(fontWeight: FontWeight.bold))]),
+          Row(children: [
+            Icon(Icons.emoji_events, color: AppTheme.warmGradient.colors.first), 
+            const SizedBox(width: 8), 
+            Text('Full Rankings', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Spacer(),
+            IconButton(
+              icon: Icon(Icons.refresh, size: 20),
+              onPressed: _loadLeaderboard,
+            ),
+          ]),
           const SizedBox(height: 12),
-          // top highlighted entry
-          ...top.map((t) => Container(
+          // Loading or content
+          if (_isLoading)
+            Center(child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: CircularProgressIndicator(),
+            ))
+          else if (_leaderboard.isEmpty)
+            Center(child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Text('No users yet', style: TextStyle(color: Colors.grey)),
+            ))
+          else
+            // Leaderboard entries
+            ..._leaderboard.asMap().entries.map((entry) {
+              final index = entry.key;
+              final user = entry.value;
+              final username = user['username'] ?? 'User';
+              final karma = user['karma'] ?? 0;
+              final badge = _getBadgeName(karma);
+              final emoji = _getBadgeEmoji(karma);
+              final initial = username.isNotEmpty ? username[0].toUpperCase() : 'U';
+              final isTop3 = index < 3;
+              
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Color.fromARGB(255, 255, 249, 196), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.amber.shade200)),
-                child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Row(children: [
-                    CircleAvatar(backgroundColor: AppTheme.primary, child: Text('T', style: const TextStyle(color: Colors.white))),
+                decoration: BoxDecoration(
+                  color: isTop3 ? Color.fromARGB(255, 255, 249, 196) : Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: isTop3 ? Colors.amber.shade200 : Colors.grey.shade200),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    // Rank
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: isTop3 ? Colors.amber.shade600 : Colors.grey.shade300,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '#${index + 1}',
+                          style: TextStyle(
+                            color: isTop3 ? Colors.white : Colors.black87,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
                     const SizedBox(width: 12),
-                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(t['name']!, style: const TextStyle(fontWeight: FontWeight.bold)), const SizedBox(height: 4), Text(t['subtitle']!, style: const TextStyle(color: Colors.black54))])
-                  ]),
-                  Text(t['karma']!, style: const TextStyle(fontWeight: FontWeight.bold))
-                ]),
-              ))
+                    // Avatar
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: AppTheme.primary.withOpacity(0.2),
+                      child: Text(
+                        initial,
+                        style: TextStyle(
+                          color: AppTheme.primary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Name and badge
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            username,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Text(emoji, style: TextStyle(fontSize: 12)),
+                              const SizedBox(width: 4),
+                              Text(
+                                badge,
+                                style: TextStyle(
+                                  color: Colors.black54,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Karma points
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '$karma',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.orange,
+                          ),
+                        ),
+                        Text(
+                          'pts',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
         ],
       ),
     );

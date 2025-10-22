@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'screens/onboarding.dart';
 import 'screens/home_shell.dart';
 import 'screens/post_request.dart';
@@ -8,9 +9,13 @@ import 'screens/profile.dart';
 import 'screens/leaderboard.dart';
 import 'screens/announcements.dart';
 import 'screens/categories.dart';
+import 'screens/signin.dart';
+import 'screens/signup.dart';
 import 'theme.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const HelpLinkApp());
 }
 
@@ -33,6 +38,8 @@ class HelpLinkApp extends StatelessWidget {
         '/leaderboard': (_) => const LeaderboardScreen(),
         '/announcements': (_) => const AnnouncementsScreen(),
         '/categories': (_) => const CategoriesScreen(),
+        '/signin': (_) => const SignInScreen(),
+        '/signup': (_) => const SignUpScreen(),
       },
     );
   }
