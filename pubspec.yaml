@@ -48,6 +48,9 @@ dependencies:
   
   # Image handling
   image_picker: ^1.0.4
+  
+  # Push Notifications
+  onesignal_flutter: ^5.2.5
 
 dev_dependencies:
   flutter_test:

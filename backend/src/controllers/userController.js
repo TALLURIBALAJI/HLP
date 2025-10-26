@@ -137,3 +137,44 @@ export const getLeaderboard = async (req, res) => {
     });
   }
 };
+
+// Register OneSignal Player ID for a user
+export const registerOneSignalPlayerId = async (req, res) => {
+  try {
+    const { firebaseUid, playerId } = req.body;
+
+    if (!firebaseUid || !playerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Firebase UID and Player ID are required'
+      });
+    }
+
+    const user = await User.findOne({ firebaseUid });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Add player ID if it doesn't exist
+    if (!user.oneSignalPlayerIds.includes(playerId)) {
+      user.oneSignalPlayerIds.push(playerId);
+      await user.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Player ID registered successfully',
+      data: user
+    });
+  } catch (error) {
+    console.error('Error in registerOneSignalPlayerId:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to register Player ID'
+    });
+  }
+};

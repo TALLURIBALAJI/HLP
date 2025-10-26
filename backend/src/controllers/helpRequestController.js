@@ -1,5 +1,6 @@
 import HelpRequest from '../models/HelpRequest.js';
 import User from '../models/User.js';
+import { sendNotificationExceptUser, sendNotificationToUser } from '../services/notificationService.js';
 
 // Create a new help request
 export const createHelpRequest = async (req, res) => {
@@ -31,6 +32,18 @@ export const createHelpRequest = async (req, res) => {
         karma: 2  // +2 points for creating a help request
       }
     });
+
+    // Send notification to all users except the creator
+    sendNotificationExceptUser(
+      firebaseUid,
+      '🆘 New Help Request',
+      `${title} - ${category}`,
+      {
+        type: 'new_help_request',
+        requestId: helpRequest._id.toString(),
+        category: category
+      }
+    ).catch(err => console.error('Notification error:', err));
 
     res.status(201).json({
       success: true,
@@ -171,6 +184,21 @@ export const acceptHelpRequest = async (req, res) => {
       $inc: { karma: 10 }
     });
 
+    // Get requester info to send notification
+    const requester = await User.findById(helpRequest.userId);
+    if (requester && requester.firebaseUid) {
+      sendNotificationToUser(
+        requester.firebaseUid,
+        '✅ Help Request Accepted!',
+        `${helper.username || 'Someone'} accepted your request: ${helpRequest.title}`,
+        {
+          type: 'request_accepted',
+          requestId: helpRequest._id.toString(),
+          helperId: helper._id.toString()
+        }
+      ).catch(err => console.error('Notification error:', err));
+    }
+
     res.status(200).json({
       success: true,
       message: 'Help request accepted successfully',
@@ -210,6 +238,21 @@ export const completeHelpRequest = async (req, res) => {
           helpRequestsFulfilled: 1
         }
       });
+
+      // Send notification to helper about karma reward
+      const helper = await User.findById(helpRequest.helperId);
+      if (helper && helper.firebaseUid) {
+        sendNotificationToUser(
+          helper.firebaseUid,
+          '🎉 Help Request Completed!',
+          `You earned +20 karma for completing: ${helpRequest.title}`,
+          {
+            type: 'request_completed',
+            requestId: helpRequest._id.toString(),
+            karmaEarned: 20
+          }
+        ).catch(err => console.error('Notification error:', err));
+      }
     }
 
     res.status(200).json({

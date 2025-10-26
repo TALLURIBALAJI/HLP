@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import '../theme.dart';
 import '../services/user_api_service.dart';
+import '../services/notification_service.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -37,19 +39,34 @@ class _SignInScreenState extends State<SignInScreen> {
       );
 
       if (mounted) {
-        // Navigate immediately, sync in background
-        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
-        
-        // Sync user to MongoDB in background (don't wait)
-        UserApiService.createOrUpdateUser(
-          firebaseUid: userCredential.user!.uid,
-          email: _emailController.text.trim(),
-          username: userCredential.user?.displayName,
-        ).then((_) {
+        try {
+          // 1. First create user in MongoDB
+          await UserApiService.createOrUpdateUser(
+            firebaseUid: userCredential.user!.uid,
+            email: _emailController.text.trim(),
+            username: userCredential.user?.displayName,
+          );
           print('✅ User synced to MongoDB');
-        }).catchError((e) {
-          print('⚠️ Failed to sync user to MongoDB: $e');
-        });
+          
+          // 2. Link OneSignal with Firebase User ID
+          await NotificationService.setExternalUserId(userCredential.user!.uid);
+          print('✅ OneSignal user ID set');
+          
+          // 3. Register OneSignal Player ID (now user exists in DB)
+          final playerId = await NotificationService.getPlayerId();
+          print('📱 Got Player ID: $playerId');
+          if (playerId != null) {
+            await UserApiService.registerOneSignalPlayerId(userCredential.user!.uid, playerId);
+            print('✅ OneSignal Player ID registered successfully');
+          } else {
+            print('⚠️ Player ID is null');
+          }
+        } catch (e) {
+          print('❌ Error in sign-in setup: $e');
+        }
+        
+        // 4. Navigate to home
+        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
       }
     } on FirebaseAuthException catch (e) {
       String message = 'Sign in failed';
@@ -100,20 +117,35 @@ class _SignInScreenState extends State<SignInScreen> {
       final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
 
       if (mounted) {
-        // Navigate immediately, sync in background
-        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
-        
-        // Sync user to MongoDB in background (don't wait)
-        UserApiService.createOrUpdateUser(
-          firebaseUid: userCredential.user!.uid,
-          email: userCredential.user!.email!,
-          username: userCredential.user?.displayName,
-          profileImage: userCredential.user?.photoURL,
-        ).then((_) {
+        try {
+          // 1. First create user in MongoDB
+          await UserApiService.createOrUpdateUser(
+            firebaseUid: userCredential.user!.uid,
+            email: userCredential.user!.email!,
+            username: userCredential.user?.displayName,
+            profileImage: userCredential.user?.photoURL,
+          );
           print('✅ Google user synced to MongoDB');
-        }).catchError((e) {
-          print('⚠️ Failed to sync Google user to MongoDB: $e');
-        });
+          
+          // 2. Link OneSignal with Firebase User ID
+          await NotificationService.setExternalUserId(userCredential.user!.uid);
+          print('✅ OneSignal user ID set');
+          
+          // 3. Register OneSignal Player ID (now user exists in DB)
+          final playerId = await NotificationService.getPlayerId();
+          print('📱 Got Player ID: $playerId');
+          if (playerId != null) {
+            await UserApiService.registerOneSignalPlayerId(userCredential.user!.uid, playerId);
+            print('✅ OneSignal Player ID registered successfully');
+          } else {
+            print('⚠️ Player ID is null');
+          }
+        } catch (e) {
+          print('❌ Error in Google sign-in setup: $e');
+        }
+        
+        // 4. Navigate to home
+        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
       }
     } catch (e) {
       if (mounted) {

@@ -3,7 +3,8 @@ import {
   createOrUpdateUser,
   getUserByFirebaseUid,
   updateUserKarma,
-  getLeaderboard
+  getLeaderboard,
+  registerOneSignalPlayerId
 } from '../controllers/userController.js';
 
 const router = express.Router();
@@ -13,6 +14,9 @@ router.get('/leaderboard/top', getLeaderboard);
 
 // POST /api/users - Create or update user
 router.post('/', createOrUpdateUser);
+
+// POST /api/users/onesignal/register - Register OneSignal Player ID
+router.post('/onesignal/register', registerOneSignalPlayerId);
 
 // GET /api/users/:firebaseUid - Get user by Firebase UID
 router.get('/:firebaseUid', getUserByFirebaseUid);

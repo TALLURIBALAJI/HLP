@@ -43,3 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase Service Account (PRIVATE KEYS - DO NOT COMMIT!)
+*firebase-adminsdk*.json
+service-account*.json
+serviceAccountKey.json
+
+# OneSignal credentials
+onesignal-credentials*.json

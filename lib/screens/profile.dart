@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../theme.dart';
 import '../services/user_api_service.dart';
 import '../services/help_request_api_service.dart';
+import '../services/notification_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -153,8 +154,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Sign out from Google as well to clear cached account
       await GoogleSignIn().signOut();
       await FirebaseAuth.instance.signOut();
+      
+      // Remove OneSignal external user ID
+      await NotificationService.removeExternalUserId();
+      
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
+        Navigator.pushReplacementNamed(context, '/signin');
       }
     }
   }
@@ -365,7 +370,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           padding: EdgeInsets.symmetric(vertical: 14 * scale),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
-                        onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+                        onPressed: () => Navigator.pushReplacementNamed(context, '/signin'),
                         icon: const Icon(Icons.login, color: Colors.white),
                         label: const Text('Sign In / Sign Up', style: TextStyle(color: Colors.white)),
                       ),

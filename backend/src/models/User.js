@@ -39,6 +39,10 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  // OneSignal Player IDs for this user (they can have multiple devices)
+  oneSignalPlayerIds: [{
+    type: String
+  }],
   isActive: {
     type: Boolean,
     default: true

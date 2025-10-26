@@ -94,4 +94,29 @@ class UserApiService {
       return [];
     }
   }
+
+  // Register OneSignal Player ID
+  static Future<bool> registerOneSignalPlayerId(String firebaseUid, String playerId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.usersEndpoint}/onesignal/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'firebaseUid': firebaseUid,
+          'playerId': playerId,
+        }),
+      ).timeout(ApiConfig.connectionTimeout);
+
+      if (response.statusCode == 200) {
+        print('✅ OneSignal Player ID registered successfully');
+        return true;
+      } else {
+        print('⚠️ Failed to register Player ID: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('Error in registerOneSignalPlayerId: $e');
+      return false;
+    }
+  }
 }

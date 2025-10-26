@@ -11,11 +11,18 @@ import 'screens/announcements.dart';
 import 'screens/categories.dart';
 import 'screens/signin.dart';
 import 'screens/signup.dart';
+import 'services/notification_service.dart';
 import 'theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase
   await Firebase.initializeApp();
+  
+  // Initialize OneSignal Notifications
+  await NotificationService.initialize();
+  
   runApp(const HelpLinkApp());
 }
 
