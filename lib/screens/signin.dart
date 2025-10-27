@@ -38,6 +38,29 @@ class _SignInScreenState extends State<SignInScreen> {
         password: _passwordController.text,
       );
 
+      // Check if email is verified
+      if (!userCredential.user!.emailVerified) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('⚠️ Please verify your email before signing in'),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+
+          // Navigate to verification screen
+          Navigator.of(context).pushReplacementNamed(
+            '/email-verification',
+            arguments: {
+              'email': _emailController.text.trim(),
+            },
+          );
+        }
+        setState(() => _isLoading = false);
+        return;
+      }
+
       if (mounted) {
         try {
           // 1. First create user in MongoDB
@@ -267,7 +290,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
-                      // TODO: Implement forgot password
+                      Navigator.pushNamed(context, '/forgot-password');
                     },
                     child: Text(
                       'Forgot Password?',

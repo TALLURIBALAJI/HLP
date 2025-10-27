@@ -46,21 +46,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
       // Update user profile with display name
       await userCredential.user?.updateDisplayName(_usernameController.text.trim());
 
+      // Send email verification
+      await userCredential.user?.sendEmailVerification();
+
       if (mounted) {
-        // Navigate immediately, sync in background
-        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
-        
-        // Sync user to MongoDB in background (don't wait)
-        UserApiService.createOrUpdateUser(
-          firebaseUid: userCredential.user!.uid,
-          email: _emailController.text.trim(),
-          username: _usernameController.text.trim(),
-          mobile: _mobileController.text.trim(),
-        ).then((_) {
-          print('✅ User synced to MongoDB');
-        }).catchError((e) {
-          print('⚠️ Failed to sync user to MongoDB: $e');
-        });
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('✅ Verification email sent! Please check your inbox.'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+
+        // Navigate to email verification screen
+        Navigator.of(context).pushReplacementNamed(
+          '/email-verification',
+          arguments: {
+            'email': _emailController.text.trim(),
+            'username': _usernameController.text.trim(),
+            'mobile': _mobileController.text.trim(),
+          },
+        );
       }
     } on FirebaseAuthException catch (e) {
       String message = 'Sign up failed';

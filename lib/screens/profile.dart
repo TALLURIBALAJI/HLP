@@ -358,7 +358,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         onPressed: _signOut,
                         icon: const Icon(Icons.logout),
-                        label: const Text('Logout'),
+                        label: const Text('Signout'),
                       ),
                     )
                   else

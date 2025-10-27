@@ -4,13 +4,17 @@ import {
   getUserByFirebaseUid,
   updateUserKarma,
   getLeaderboard,
-  registerOneSignalPlayerId
+  registerOneSignalPlayerId,
+  checkEmailExists
 } from '../controllers/userController.js';
 
 const router = express.Router();
 
 // GET /api/users/leaderboard/top - Get leaderboard (MUST be before /:firebaseUid)
 router.get('/leaderboard/top', getLeaderboard);
+
+// GET /api/users/check-email - Check if email exists (MUST be before /:firebaseUid)
+router.get('/check-email', checkEmailExists);
 
 // POST /api/users - Create or update user
 router.post('/', createOrUpdateUser);

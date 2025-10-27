@@ -11,6 +11,8 @@ import 'screens/announcements.dart';
 import 'screens/categories.dart';
 import 'screens/signin.dart';
 import 'screens/signup.dart';
+import 'screens/email_verification_screen.dart';
+import 'screens/forgot_password_screen.dart';
 import 'services/notification_service.dart';
 import 'theme.dart';
 
@@ -47,6 +49,8 @@ class HelpLinkApp extends StatelessWidget {
         '/categories': (_) => const CategoriesScreen(),
         '/signin': (_) => const SignInScreen(),
         '/signup': (_) => const SignUpScreen(),
+        '/email-verification': (_) => const EmailVerificationScreen(),
+        '/forgot-password': (_) => const ForgotPasswordScreen(),
       },
     );
   }

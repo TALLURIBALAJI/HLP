@@ -119,4 +119,28 @@ class UserApiService {
       return false;
     }
   }
+
+  // Check if email exists in database
+  static Future<Map<String, dynamic>> checkEmailExists(String email) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.usersEndpoint}/check-email?email=${Uri.encodeComponent(email)}'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(ApiConfig.connectionTimeout);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'exists': data['exists'] ?? false,
+          'hasPassword': data['hasPassword'] ?? false,
+          'isGoogleUser': data['isGoogleUser'] ?? false,
+        };
+      } else {
+        return {'exists': false, 'hasPassword': false, 'isGoogleUser': false};
+      }
+    } catch (e) {
+      print('Error in checkEmailExists: $e');
+      return {'exists': false, 'hasPassword': false, 'isGoogleUser': false};
+    }
+  }
 }

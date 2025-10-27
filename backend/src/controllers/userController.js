@@ -178,3 +178,44 @@ export const registerOneSignalPlayerId = async (req, res) => {
     });
   }
 };
+
+// Check if email exists and get account type
+export const checkEmailExists = async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        exists: false,
+        hasPassword: false,
+        isGoogleUser: false
+      });
+    }
+
+    // Check if user has profileImage from Google (indicates Google sign-in)
+    const isGoogleUser = user.profileImage && user.profileImage.includes('googleusercontent.com');
+
+    res.status(200).json({
+      success: true,
+      exists: true,
+      hasPassword: !isGoogleUser, // If not Google user, assume they have password
+      isGoogleUser: isGoogleUser
+    });
+  } catch (error) {
+    console.error('Error in checkEmailExists:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to check email'
+    });
+  }
+};
