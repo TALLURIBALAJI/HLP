@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../services/help_request_api_service.dart';
+import 'help_request_details.dart';
 
 class HomeFeedScreen extends StatefulWidget {
   const HomeFeedScreen({super.key});
@@ -245,7 +246,15 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                                     ),
                                     trailing: ElevatedButton(
                                       onPressed: () {
-                                        // TODO: Navigate to help request details
+                                        // Navigate to help request details
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => HelpRequestDetailsScreen(
+                                              helpRequest: r,
+                                            ),
+                                          ),
+                                        );
                                       },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: AppTheme.primary,

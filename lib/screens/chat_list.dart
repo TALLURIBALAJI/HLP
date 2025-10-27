@@ -1,28 +1,112 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../services/chat_api_service.dart';
+import 'chat_screen.dart';
 
-class ChatListScreen extends StatelessWidget {
+class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final chats = List.generate(6, (i) => 'Chat with User ${i + 1}');
+  State<ChatListScreen> createState() => _ChatListScreenState();
+}
 
+class _ChatListScreenState extends State<ChatListScreen> {
+  List<dynamic> _chats = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadChats();
+  }
+
+  Future<void> _loadChats() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final chats = await ChatApiService.getUserChats(currentUser.uid);
+      if (mounted) {
+        setState(() {
+          _chats = chats;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading chats: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Messages')),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(12),
-        itemBuilder: (context, i) => ListTile(
-          leading: CircleAvatar(child: Text(chats[i][5])),
-          title: Text(chats[i]),
-          subtitle: const Text('Last message preview...'),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ChatWindow(name: chats[i])),
+      appBar: AppBar(
+        title: const Text('Messages'),
+        actions: [
+          // Refresh button
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadChats,
+            tooltip: 'Refresh chats',
           ),
-        ),
-        separatorBuilder: (_, __) => const Divider(),
-        itemCount: chats.length,
+        ],
       ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _chats.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No messages yet',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadChats,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(12),
+                    itemBuilder: (context, i) {
+                      final chat = _chats[i];
+                      final otherParticipant = chat['otherParticipant'];
+                      final lastMessage = chat['lastMessage'] ?? 'No messages yet';
+                      final username = otherParticipant?['username'] ?? 'Unknown User';
+                      final email = otherParticipant?['email'] ?? '';
+                      final firebaseUid = otherParticipant?['firebaseUid'] ?? '';
+
+                      return ListTile(
+                        leading: CircleAvatar(
+                          child: Text(
+                            username.isNotEmpty ? username[0].toUpperCase() : 'U',
+                          ),
+                        ),
+                        title: Text(username),
+                        subtitle: Text(
+                          lastMessage,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChatScreen(
+                                otherUserId: firebaseUid,
+                                otherUserName: username,
+                                otherUserEmail: email,
+                              ),
+                            ),
+                          ).then((_) => _loadChats()); // Refresh when returning
+                        },
+                      );
+                    },
+                    separatorBuilder: (_, __) => const Divider(),
+                    itemCount: _chats.length,
+                  ),
+                ),
       bottomNavigationBar: const SizedBox(height: 0),
     );
   }
@@ -38,10 +122,7 @@ class ChatWindow extends StatefulWidget {
 
 class _ChatWindowState extends State<ChatWindow> {
   final controller = TextEditingController();
-  final messages = <Map<String, String>>[
-    {'who': 'them', 'text': 'Hi, how can I help?'},
-    {'who': 'me', 'text': 'I need help with groceries.'}
-  ];
+  final messages = <Map<String, String>>[]; // Empty - no default messages
 
   @override
   Widget build(BuildContext context) {

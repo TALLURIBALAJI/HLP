@@ -87,8 +87,8 @@ export const getAllHelpRequests = async (req, res) => {
     }
 
     const helpRequests = await HelpRequest.find(query)
-      .populate('userId', 'username email profileImage karma')
-      .populate('helperId', 'username email profileImage')
+      .populate('userId', 'username email profileImage karma firebaseUid')
+      .populate('helperId', 'username email profileImage firebaseUid')
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
