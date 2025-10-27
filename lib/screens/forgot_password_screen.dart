@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../theme.dart';
+import '../services/user_api_service.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -29,8 +30,63 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     try {
       final email = _emailController.text.trim();
 
-      // Send password reset email directly through Firebase
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      print('🔍 Checking if email exists in database: $email');
+
+      // First, check if email exists in our MongoDB database
+      final emailCheck = await UserApiService.checkEmailExists(email);
+      
+      print('📧 Email check result: $emailCheck');
+
+      if (!emailCheck['exists']) {
+        // Email is not registered in our database
+        print('❌ Email not found in database: $email');
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('❌ No account found with this email address.\nPlease check your email or sign up.'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+        
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Check if this is a Google user (no password)
+      if (emailCheck['isGoogleUser'] == true && emailCheck['hasPassword'] == false) {
+        print('⚠️ User signed up with Google: $email');
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('⚠️ This account uses Google Sign-In.\nPlease sign in with Google instead.'),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
+        
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      print('✅ Email found in database! Sending reset email...');
+
+      // Email exists, now send password reset email through Firebase
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: email,
+        actionCodeSettings: ActionCodeSettings(
+          url: 'https://helplink-d1ab6.firebaseapp.com',
+          handleCodeInApp: false,
+        ),
+      );
+
+      print('✅ Password reset email sent to: $email');
 
       setState(() => _emailSent = true);
 
@@ -45,16 +101,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         );
       }
     } on FirebaseAuthException catch (e) {
+      print('❌ FirebaseAuthException: ${e.code} - ${e.message}');
+      
       String message = 'Failed to send reset email';
       
       if (e.code == 'user-not-found') {
-        message = '❌ No account found with this email address';
+        message = '❌ No account found with this email address.\nPlease check your email or sign up.';
       } else if (e.code == 'invalid-email') {
-        message = 'Invalid email address';
+        message = '❌ Invalid email address format';
       } else if (e.code == 'too-many-requests') {
-        message = 'Too many requests. Please try again later';
+        message = '⏳ Too many requests. Please try again later';
       } else if (e.code == 'network-request-failed') {
-        message = 'Network error. Please check your connection';
+        message = '📡 Network error. Please check your connection';
+      } else {
+        message = '❌ Error: ${e.code}';
       }
 
       if (mounted) {
@@ -63,14 +123,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             content: Text(message),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
     } catch (e) {
+      print('❌ Unexpected error: $e');
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('❌ Error sending reset email. Please try again.'),
+          SnackBar(
+            content: Text('❌ Error: ${e.toString()}'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../theme.dart';
-import '../services/user_api_service.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -14,7 +13,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _mobileController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
@@ -25,7 +23,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void dispose() {
     _usernameController.dispose();
     _emailController.dispose();
-    _mobileController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -37,55 +34,75 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => _isLoading = true);
 
     try {
+      print('🔍 Attempting to create account with email: ${_emailController.text.trim()}');
+      
       // Create user with email and password
       final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+      
+      print('✅ Account created successfully with UID: ${userCredential.user?.uid}');
 
       // Update user profile with display name
       await userCredential.user?.updateDisplayName(_usernameController.text.trim());
 
-      // Send email verification
-      await userCredential.user?.sendEmailVerification();
-
       if (mounted) {
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('✅ Verification email sent! Please check your inbox.'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-
-        // Navigate to email verification screen
+        // Navigate directly to email verification screen
         Navigator.of(context).pushReplacementNamed(
           '/email-verification',
           arguments: {
             'email': _emailController.text.trim(),
             'username': _usernameController.text.trim(),
-            'mobile': _mobileController.text.trim(),
           },
         );
       }
     } on FirebaseAuthException catch (e) {
+      print('❌ FirebaseAuthException: ${e.code} - ${e.message}');
+      
       String message = 'Sign up failed';
+      bool showSignInOption = false;
+      
       if (e.code == 'weak-password') {
-        message = 'The password is too weak';
+        message = '❌ The password is too weak. Use at least 6 characters with mix of letters and numbers.';
       } else if (e.code == 'email-already-in-use') {
-        message = 'An account already exists with this email';
+        message = '⚠️ This email is already registered. Please sign in instead.';
+        showSignInOption = true;
+        
+        // Log which email is causing the issue
+        print('📧 Email already exists in Firebase: ${_emailController.text.trim()}');
       } else if (e.code == 'invalid-email') {
-        message = 'Invalid email address';
+        message = '❌ Invalid email address format';
       } else if (e.code == 'operation-not-allowed') {
-        message = 'Email/password accounts are not enabled';
+        message = '❌ Email/password accounts are not enabled';
+      } else {
+        message = '❌ Error: ${e.code}';
       }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),
+            backgroundColor: showSignInOption ? Colors.orange : Colors.red,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 5),
+            action: showSignInOption
+                ? SnackBarAction(
+                    label: 'Sign In',
+                    textColor: Colors.white,
+                    onPressed: () {
+                      Navigator.pushReplacementNamed(context, '/signin');
+                    },
+                  )
+                : null,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error: ${e.toString()}'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -182,32 +199,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     }
                     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
                       return 'Please enter a valid email';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                
-                // Mobile number field
-                TextFormField(
-                  controller: _mobileController,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: 'Mobile Number',
-                    hintText: 'Enter your mobile number',
-                    prefixIcon: const Icon(Icons.phone_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your mobile number';
-                    }
-                    if (value.length < 10) {
-                      return 'Please enter a valid mobile number';
                     }
                     return null;
                   },
@@ -336,7 +327,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                     TextButton(
                       onPressed: () {
-                        Navigator.pushReplacementNamed(context, '/signin');
+                        Navigator.pushNamed(context, '/signin');
                       },
                       child: Text(
                         'Sign In',
