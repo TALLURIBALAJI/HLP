@@ -41,15 +41,9 @@ class ApiConfig {
     
     // Local development mode
     if (Platform.isAndroid) {
-      // Check if running on emulator (usually has "generic" or "unknown" in model)
-      // Emulators use 10.0.2.2 to access host machine's localhost
-      try {
-        // If local IP is accessible, assume physical device
-        // Otherwise, fall back to emulator address
-        return 'http://$_localIpAddress:3000/api';
-      } catch (e) {
-        return 'http://10.0.2.2:3000/api';  // Fallback to emulator
-      }
+      // ALWAYS use emulator address for Android Emulator
+      // Use 10.0.2.2 to access host machine's localhost
+      return 'http://10.0.2.2:3000/api';
     } else if (Platform.isIOS) {
       // iOS Simulator can use localhost directly
       return 'http://localhost:3000/api';

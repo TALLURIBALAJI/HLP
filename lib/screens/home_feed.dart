@@ -94,6 +94,34 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
             ]),
           ),
           const SizedBox(height: 12),
+          // Karma Features Quick Access
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _KarmaFeatureButton(
+                    icon: Icons.card_giftcard,
+                    label: 'Donate',
+                    color: Colors.orange,
+                    karma: '+15',
+                    onTap: () => Navigator.pushNamed(context, '/donations'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _KarmaFeatureButton(
+                    icon: Icons.volunteer_activism,
+                    label: 'Events',
+                    color: Colors.purple,
+                    karma: '+25',
+                    onTap: () => Navigator.pushNamed(context, '/events'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12.0),
             child: Column(children: [
@@ -292,5 +320,66 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
       default:
         return Colors.grey;
     }
+  }
+}
+
+// Karma Feature Button Widget
+class _KarmaFeatureButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final String karma;
+  final VoidCallback onTap;
+
+  const _KarmaFeatureButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.karma,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 32),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+            Text(
+              karma,
+              style: TextStyle(
+                color: Colors.green[700],
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -15,6 +15,8 @@ import 'screens/email_verification_screen.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/verification_method_screen.dart';
 import 'screens/otp_verification_screen.dart';
+import 'screens/donations_screen.dart';
+import 'screens/events_screen.dart';
 import 'services/notification_service.dart';
 import 'theme.dart';
 
@@ -55,6 +57,8 @@ class HelpLinkApp extends StatelessWidget {
         '/forgot-password': (_) => const ForgotPasswordScreen(),
         '/verification-method': (_) => const VerificationMethodScreen(),
         '/otp-verification': (_) => const OtpVerificationScreen(),
+        '/donations': (_) => const DonationsScreen(),
+        '/events': (_) => const EventsScreen(),
       },
     );
   }

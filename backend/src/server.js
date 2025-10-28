@@ -9,6 +9,10 @@ import userRoutes from './routes/userRoutes.js';
 import helpRequestRoutes from './routes/helpRequestRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
+import feedbackRoutes from './routes/feedbackRoutes.js';
+import donationRoutes from './routes/donationRoutes.js';
+import eventRoutes from './routes/eventRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -47,6 +51,10 @@ app.use('/api/users', userRoutes);
 app.use('/api/help-requests', helpRequestRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/chats', chatRoutes);
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/donations', donationRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/reports', reportRoutes);
 
 // 404 Handler
 app.use((req, res) => {
