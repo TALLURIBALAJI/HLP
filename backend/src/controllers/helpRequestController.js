@@ -5,7 +5,7 @@ import { sendNotificationExceptUser, sendNotificationToUser } from '../services/
 // Create a new help request
 export const createHelpRequest = async (req, res) => {
   try {
-    const { firebaseUid, title, description, category, urgency, location } = req.body;
+    const { firebaseUid, title, description, category, urgency, location, anonymous } = req.body;
 
     // Find user by Firebase UID
     const user = await User.findOne({ firebaseUid });
@@ -22,7 +22,8 @@ export const createHelpRequest = async (req, res) => {
       description,
       category,
       urgency,
-      location
+      location,
+      anonymous: anonymous || false
     });
 
     // Update user's help requests count and award karma points
@@ -95,13 +96,29 @@ export const getAllHelpRequests = async (req, res) => {
 
     const total = await HelpRequest.countDocuments(query);
 
+    // Mask user info for anonymous posts
+    const maskedRequests = helpRequests.map(request => {
+      const requestObj = request.toObject();
+      if (requestObj.anonymous && requestObj.userId) {
+        requestObj.userId = {
+          _id: requestObj.userId._id,
+          username: 'Anonymous',
+          email: 'hidden@anonymous.com',
+          profileImage: null,
+          karma: requestObj.userId.karma,
+          firebaseUid: 'anonymous'
+        };
+      }
+      return requestObj;
+    });
+
     res.status(200).json({
       success: true,
-      count: helpRequests.length,
+      count: maskedRequests.length,
       total,
       page: parseInt(page),
       pages: Math.ceil(total / parseInt(limit)),
-      data: helpRequests
+      data: maskedRequests
     });
   } catch (error) {
     console.error('Error in getAllHelpRequests:', error);
@@ -118,8 +135,8 @@ export const getHelpRequestById = async (req, res) => {
     const { id } = req.params;
 
     const helpRequest = await HelpRequest.findById(id)
-      .populate('userId', 'username email profileImage karma')
-      .populate('helperId', 'username email profileImage');
+      .populate('userId', 'username email profileImage karma firebaseUid')
+      .populate('helperId', 'username email profileImage firebaseUid');
 
     if (!helpRequest) {
       return res.status(404).json({
@@ -132,9 +149,22 @@ export const getHelpRequestById = async (req, res) => {
     helpRequest.views += 1;
     await helpRequest.save();
 
+    // Mask user info if anonymous
+    const requestObj = helpRequest.toObject();
+    if (requestObj.anonymous && requestObj.userId) {
+      requestObj.userId = {
+        _id: requestObj.userId._id,
+        username: 'Anonymous',
+        email: 'hidden@anonymous.com',
+        profileImage: null,
+        karma: requestObj.userId.karma,
+        firebaseUid: 'anonymous'
+      };
+    }
+
     res.status(200).json({
       success: true,
-      data: helpRequest
+      data: requestObj
     });
   } catch (error) {
     console.error('Error in getHelpRequestById:', error);

@@ -24,10 +24,10 @@ class _PostRequestScreenState extends State<PostRequestScreen> {
   bool anonymous = false;
   String? category = 'Food';
   String urgency = 'Medium';
-  File? _selectedImage;
+  List<File> _selectedImages = [];
   bool _isUploading = false;
   bool _isSubmitting = false;
-  String? _uploadedImageUrl;
+  List<String> _uploadedImageUrls = [];
 
   @override
   void dispose() {
@@ -37,47 +37,60 @@ class _PostRequestScreenState extends State<PostRequestScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
+  Future<void> _pickImages() async {
     try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
+      final List<XFile> images = await _picker.pickMultiImage(
         maxWidth: 1800,
         maxHeight: 1800,
       );
       
-      if (image != null) {
+      if (images.isNotEmpty) {
+        // Limit to 5 images
+        final imagesToAdd = images.take(5 - _selectedImages.length).toList();
+        
         setState(() {
-          _selectedImage = File(image.path);
-          _uploadedImageUrl = null;
+          _selectedImages.addAll(imagesToAdd.map((xfile) => File(xfile.path)));
+          _uploadedImageUrls.clear();
         });
+
+        if (images.length > imagesToAdd.length) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Maximum 5 images allowed. Added ${imagesToAdd.length} images.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking image: $e')),
+          SnackBar(content: Text('Error picking images: $e')),
         );
       }
     }
   }
 
-  Future<void> _uploadImage() async {
-    if (_selectedImage == null) return;
+  Future<void> _uploadImages() async {
+    if (_selectedImages.isEmpty) return;
     
     setState(() => _isUploading = true);
     
     try {
-      final imageUrl = await ImageUploadService.uploadSingleImage(_selectedImage!);
+      final imageUrls = await ImageUploadService.uploadMultipleImages(_selectedImages);
       
-      if (imageUrl != null) {
+      if (imageUrls.isNotEmpty) {
         setState(() {
-          _uploadedImageUrl = imageUrl;
+          _uploadedImageUrls = imageUrls;
           _isUploading = false;
         });
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Image uploaded successfully!'),
+            SnackBar(
+              content: Text('${imageUrls.length} image(s) uploaded successfully!'),
               backgroundColor: Colors.green,
             ),
           );
@@ -96,10 +109,17 @@ class _PostRequestScreenState extends State<PostRequestScreen> {
     }
   }
 
-  void _removeImage() {
+  void _removeImage(int index) {
     setState(() {
-      _selectedImage = null;
-      _uploadedImageUrl = null;
+      _selectedImages.removeAt(index);
+      _uploadedImageUrls.clear();
+    });
+  }
+
+  void _clearAllImages() {
+    setState(() {
+      _selectedImages.clear();
+      _uploadedImageUrls.clear();
     });
   }
 
@@ -144,6 +164,7 @@ class _PostRequestScreenState extends State<PostRequestScreen> {
           'address': _locationController.text.trim(),
           'coordinates': [0.0, 0.0],
         },
+        anonymous: anonymous,
       );
 
       setState(() => _isSubmitting = false);
@@ -153,8 +174,8 @@ class _PostRequestScreenState extends State<PostRequestScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                _uploadedImageUrl != null
-                    ? '✅ Request posted with image! +2 karma earned'
+                _uploadedImageUrls.isNotEmpty
+                    ? '✅ Request posted with ${_uploadedImageUrls.length} image(s)! +2 karma earned'
                     : '✅ Request posted! +2 karma earned',
               ),
               backgroundColor: Colors.green,
@@ -217,11 +238,8 @@ class _PostRequestScreenState extends State<PostRequestScreen> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context);
-        } else {
-          Navigator.pushReplacementNamed(context, '/home');
-        }
+        // Navigate back to home feed (tab 0)
+        Navigator.pushReplacementNamed(context, '/home', arguments: 0);
         return false;
       },
       child: Scaffold(
@@ -238,7 +256,17 @@ class _PostRequestScreenState extends State<PostRequestScreen> {
                 padding: EdgeInsets.symmetric(vertical: 20 * scale, horizontal: 12 * scale),
                 decoration: BoxDecoration(color: AppTheme.warmGradient.colors.first, borderRadius: BorderRadius.circular(6)),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back, color: Colors.white)), SizedBox(width: 8 * scale), Text('Post Help Request', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.bold, fontSize: (Theme.of(context).textTheme.titleLarge?.fontSize ?? 20) * scale))]),
+                  Row(children: [
+                    IconButton(
+                      onPressed: () {
+                        // Navigate back to home feed (tab 0)
+                        Navigator.pushReplacementNamed(context, '/home', arguments: 0);
+                      }, 
+                      icon: const Icon(Icons.arrow_back, color: Colors.white)
+                    ), 
+                    SizedBox(width: 8 * scale), 
+                    Text('Post Help Request', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.bold, fontSize: (Theme.of(context).textTheme.titleLarge?.fontSize ?? 20) * scale))
+                  ]),
                   SizedBox(height: 6 * scale),
                   Text('Let the community know how they can help', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70, fontSize: (Theme.of(context).textTheme.bodySmall?.fontSize ?? 12) * scale)),
                 ]),
@@ -300,7 +328,7 @@ class _PostRequestScreenState extends State<PostRequestScreen> {
                   TextFormField(
                     controller: _locationController,
                     decoration: InputDecoration(
-                      hintText: 'E.g., Downtown area, Street name...',
+                      hintText: 'Enter location',
                       filled: true,
                       fillColor: Colors.white,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -309,14 +337,58 @@ class _PostRequestScreenState extends State<PostRequestScreen> {
                   ),
                   SizedBox(height: 12 * scale),
                   
+                  // Anonymous Mode
+                  Container(
+                    padding: EdgeInsets.all(12 * scale),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.visibility_off, color: AppTheme.primary, size: 20 * scale),
+                        SizedBox(width: 12 * scale),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Post Anonymously',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14 * scale,
+                                ),
+                              ),
+                              SizedBox(height: 2 * scale),
+                              Text(
+                                'Your identity will be hidden from others',
+                                style: TextStyle(
+                                  fontSize: 12 * scale,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: anonymous,
+                          onChanged: (value) => setState(() => anonymous = value),
+                          activeColor: AppTheme.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 12 * scale),
+                  
                   // Image Upload Section
-                  Text('Add Photo (Optional)'),
+                  Text('Add Photos (Optional - Max 5)'),
                   SizedBox(height: 8 * scale),
-                  if (_selectedImage == null)
+                  if (_selectedImages.isEmpty)
                     OutlinedButton.icon(
-                      onPressed: _pickImage,
+                      onPressed: _pickImages,
                       icon: const Icon(Icons.add_photo_alternate),
-                      label: const Text('Select Image'),
+                      label: const Text('Select Images'),
                       style: OutlinedButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: 14 * scale),
                         backgroundColor: Colors.white,
@@ -326,29 +398,79 @@ class _PostRequestScreenState extends State<PostRequestScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: double.infinity,
-                          height: 200 * scale,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: AppTheme.primary),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.file(
-                              _selectedImage!,
-                              fit: BoxFit.cover,
-                            ),
+                        // Grid of selected images
+                        SizedBox(
+                          height: 120 * scale,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _selectedImages.length,
+                            itemBuilder: (context, index) {
+                              return Container(
+                                margin: EdgeInsets.only(right: 8 * scale),
+                                width: 100 * scale,
+                                height: 100 * scale,
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: AppTheme.primary),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Stack(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.file(
+                                        _selectedImages[index],
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 4,
+                                      right: 4,
+                                      child: GestureDetector(
+                                        onTap: () => _removeImage(index),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.close,
+                                            color: Colors.white,
+                                            size: 16,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                           ),
                         ),
                         SizedBox(height: 8 * scale),
                         Row(
                           children: [
+                            if (_selectedImages.length < 5)
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: _pickImages,
+                                  icon: const Icon(Icons.add, size: 18),
+                                  label: Text('Add More (${_selectedImages.length}/5)'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppTheme.primary,
+                                    side: BorderSide(color: AppTheme.primary),
+                                  ),
+                                ),
+                              ),
+                            if (_selectedImages.length < 5)
+                              SizedBox(width: 8 * scale),
                             Expanded(
                               child: OutlinedButton.icon(
-                                onPressed: _removeImage,
+                                onPressed: _clearAllImages,
                                 icon: const Icon(Icons.delete, size: 18),
-                                label: const Text('Remove'),
+                                label: const Text('Clear All'),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: Colors.red,
                                   side: const BorderSide(color: Colors.red),
@@ -358,9 +480,9 @@ class _PostRequestScreenState extends State<PostRequestScreen> {
                             SizedBox(width: 8 * scale),
                             Expanded(
                               child: ElevatedButton.icon(
-                                onPressed: _isUploading ? null : _uploadImage,
+                                onPressed: _isUploading ? null : _uploadImages,
                                 icon: _isUploading
-                                    ? SizedBox(
+                                    ? const SizedBox(
                                         width: 18,
                                         height: 18,
                                         child: CircularProgressIndicator(
@@ -369,16 +491,16 @@ class _PostRequestScreenState extends State<PostRequestScreen> {
                                         ),
                                       )
                                     : Icon(
-                                        _uploadedImageUrl != null
+                                        _uploadedImageUrls.isNotEmpty
                                             ? Icons.check_circle
                                             : Icons.cloud_upload,
                                         size: 18,
                                       ),
                                 label: Text(
-                                  _uploadedImageUrl != null ? 'Uploaded' : 'Upload',
+                                  _uploadedImageUrls.isNotEmpty ? 'Uploaded' : 'Upload',
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: _uploadedImageUrl != null
+                                  backgroundColor: _uploadedImageUrls.isNotEmpty
                                       ? Colors.green
                                       : AppTheme.primary,
                                 ),
@@ -392,7 +514,10 @@ class _PostRequestScreenState extends State<PostRequestScreen> {
                   SizedBox(height: 18 * scale),
                   Row(children: [
                     Expanded(child: OutlinedButton(
-                      onPressed: _isSubmitting ? null : () => Navigator.pop(context),
+                      onPressed: _isSubmitting ? null : () {
+                        // Navigate back to home feed (tab 0)
+                        Navigator.pushReplacementNamed(context, '/home', arguments: 0);
+                      },
                       style: OutlinedButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: 14 * scale),
                         backgroundColor: Colors.white,

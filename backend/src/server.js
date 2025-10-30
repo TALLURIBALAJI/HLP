@@ -13,9 +13,15 @@ import feedbackRoutes from './routes/feedbackRoutes.js';
 import donationRoutes from './routes/donationRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Load environment variables
-dotenv.config();
+// Get current directory for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables from parent directory
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 // Initialize Express app
 const app = express();

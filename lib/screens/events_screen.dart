@@ -31,9 +31,9 @@ class _EventsScreenState extends State<EventsScreen> {
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final responseData = json.decode(response.body);
         setState(() {
-          _events = data['events'] ?? [];
+          _events = responseData['data'] ?? [];
           _isLoading = false;
         });
       }
@@ -246,7 +246,18 @@ class EventCard extends StatelessWidget {
     final title = event['title'] ?? 'Untitled';
     final description = event['description'] ?? '';
     final category = event['category'] ?? 'Other';
-    final location = event['location'] ?? '';
+    
+    // Handle location - it can be a Map or String
+    String location = '';
+    if (event['location'] != null) {
+      if (event['location'] is String) {
+        location = event['location'];
+      } else if (event['location'] is Map) {
+        final locMap = event['location'] as Map<String, dynamic>;
+        location = locMap['address']?.toString() ?? '';
+      }
+    }
+    
     final volunteers = event['volunteers'] ?? [];
     final eventDateStr = event['eventDate'] ?? '';
     
@@ -354,21 +365,86 @@ class EventCard extends StatelessWidget {
                 ),
               )
             else
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: onRegister,
-                  icon: const Icon(Icons.volunteer_activism),
-                  label: const Text('Register as Volunteer'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
+              Builder(
+                builder: (context) {
+                  final currentUser = FirebaseAuth.instance.currentUser;
+                  final organizer = event['organizerId'];
+                  final isOwnEvent = currentUser != null && 
+                                    organizer != null && 
+                                    organizer['firebaseUid'] == currentUser.uid;
+                  
+                  if (isOwnEvent) {
+                    // Show only info message for own events
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.purple.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.purple.shade700, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'This is your event',
+                              style: TextStyle(color: Colors.purple.shade700, fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  
+                  return Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton.icon(
+                          onPressed: onRegister,
+                          icon: const Icon(Icons.volunteer_activism, size: 18),
+                          label: const Text('Register'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.purple,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            if (organizer != null) {
+                              Navigator.pushNamed(
+                                context,
+                                '/chat',
+                                arguments: {
+                                  'otherUserId': organizer['firebaseUid'],
+                                  'otherUserName': organizer['username'],
+                                  'otherUserEmail': organizer['email'],
+                                },
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.message, size: 18),
+                          label: const Text('Message'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.purple,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
           ],
         ),

@@ -6,6 +6,10 @@ import 'screens/post_request.dart';
 import 'screens/book_exchange.dart';
 import 'screens/chat_list.dart';
 import 'screens/profile.dart';
+import 'screens/my_posts_screen.dart';
+import 'screens/my_donations_screen.dart';
+import 'screens/my_events_screen.dart';
+import 'screens/karma_history_screen.dart';
 import 'screens/leaderboard.dart';
 import 'screens/announcements.dart';
 import 'screens/categories.dart';
@@ -48,6 +52,10 @@ class HelpLinkApp extends StatelessWidget {
         '/books': (_) => const BookExchangeScreen(),
         '/chats': (_) => const ChatListScreen(),
         '/profile': (_) => const ProfileScreen(),
+        '/my-posts': (_) => const MyPostsScreen(),
+        '/my-donations': (_) => const MyDonationsScreen(),
+        '/my-events': (_) => const MyEventsScreen(),
+        '/karma-history': (_) => const KarmaHistoryScreen(),
         '/leaderboard': (_) => const LeaderboardScreen(),
         '/announcements': (_) => const AnnouncementsScreen(),
         '/categories': (_) => const CategoriesScreen(),

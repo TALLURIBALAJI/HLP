@@ -11,6 +11,7 @@ class HelpRequestApiService {
     required String category,
     String urgency = 'Medium',
     Map<String, dynamic>? location,
+    bool anonymous = false,
   }) async {
     try {
       final url = '${ApiConfig.baseUrl}${ApiConfig.helpRequestsEndpoint}';
@@ -21,6 +22,7 @@ class HelpRequestApiService {
         'category': category,
         'urgency': urgency,
         'location': location,
+        'anonymous': anonymous,
       });
       
       print('🌐 Creating help request...');
@@ -206,6 +208,39 @@ class HelpRequestApiService {
       }
     } catch (e) {
       print('❌ Error in getUserPosts: $e');
+      return [];
+    }
+  }
+
+  // Get posts accepted by user (posts where user is the helper)
+  static Future<List<dynamic>> getAcceptedPosts(String firebaseUid) async {
+    try {
+      print('🔵 Fetching accepted posts for user: $firebaseUid');
+      
+      final uri = Uri.parse('${ApiConfig.baseUrl}${ApiConfig.helpRequestsEndpoint}')
+          .replace(queryParameters: {'helperId': firebaseUid});
+      print('📍 URL: $uri');
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(ApiConfig.connectionTimeout);
+
+      print('✅ Response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data'] ?? [];
+      } else {
+        print('❌ Failed with status: ${response.statusCode}');
+        print('📦 Response: ${response.body}');
+        return [];
+      }
+    } catch (e) {
+      print('❌ Error in getAcceptedPosts: $e');
       return [];
     }
   }

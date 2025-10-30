@@ -15,4 +15,7 @@ router.post('/:id/volunteer', eventController.registerVolunteer);
 // Mark attendance (admin/organizer)
 router.put('/:id/attendance', eventController.markAttendance);
 
+// Complete event (organizer only)
+router.put('/:id/complete', eventController.completeEvent);
+
 export default router;

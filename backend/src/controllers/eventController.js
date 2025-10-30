@@ -223,3 +223,34 @@ export const markAttendance = async (req, res) => {
     });
   }
 };
+
+// Complete event (organizer only)
+export const completeEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const event = await Event.findById(id);
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: 'Event not found'
+      });
+    }
+
+    // Update status to Completed
+    event.status = 'Completed';
+    await event.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Event completed successfully',
+      data: event
+    });
+  } catch (error) {
+    console.error('Error in completeEvent:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to complete event'
+    });
+  }
+};

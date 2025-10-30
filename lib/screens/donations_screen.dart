@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'chat_screen.dart';
 
 class DonationsScreen extends StatefulWidget {
   const DonationsScreen({super.key});
@@ -33,9 +34,9 @@ class _DonationsScreenState extends State<DonationsScreen> {
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final responseData = json.decode(response.body);
         setState(() {
-          _donations = data['donations'] ?? [];
+          _donations = responseData['data'] ?? [];
           _isLoading = false;
         });
       }
@@ -241,7 +242,17 @@ class DonationCard extends StatelessWidget {
     final category = donation['category'] ?? 'Other';
     final title = donation['title'] ?? 'Untitled';
     final description = donation['description'] ?? '';
-    final location = donation['location'] ?? '';
+    
+    // Handle location - it can be a Map or String
+    String location = '';
+    if (donation['location'] != null) {
+      if (donation['location'] is String) {
+        location = donation['location'];
+      } else if (donation['location'] is Map) {
+        final locMap = donation['location'] as Map<String, dynamic>;
+        location = locMap['address']?.toString() ?? '';
+      }
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -308,21 +319,86 @@ class DonationCard extends StatelessWidget {
             ],
             if (status == 'Available') ...[
               const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: onClaim,
-                  icon: const Icon(Icons.volunteer_activism),
-                  label: const Text('Claim This Donation'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
+              Builder(
+                builder: (context) {
+                  final currentUser = FirebaseAuth.instance.currentUser;
+                  final donor = donation['userId'];
+                  final isOwnPost = currentUser != null && 
+                                   donor != null && 
+                                   donor['firebaseUid'] == currentUser.uid;
+                  
+                  if (isOwnPost) {
+                    // Show only info message for own posts
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'This is your donation post',
+                              style: TextStyle(color: Colors.blue.shade700, fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  
+                  return Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton.icon(
+                          onPressed: onClaim,
+                          icon: const Icon(Icons.volunteer_activism, size: 18),
+                          label: const Text('Claim'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            if (donor != null) {
+                              Navigator.pushNamed(
+                                context,
+                                '/chat',
+                                arguments: {
+                                  'otherUserId': donor['firebaseUid'],
+                                  'otherUserName': donor['username'],
+                                  'otherUserEmail': donor['email'],
+                                },
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.message, size: 18),
+                          label: const Text('Message'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ],

@@ -19,7 +19,7 @@ const helpRequestSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['Academic', 'Technical', 'Personal', 'Transport', 'Food', 'Other']
+    enum: ['Food', 'Books', 'Clothes', 'Medical', 'Elderly Care', 'Education', 'Emergency', 'Academic', 'Technical', 'Personal', 'Transport', 'Other']
   },
   urgency: {
     type: String,
@@ -66,6 +66,10 @@ const helpRequestSchema = new mongoose.Schema({
   views: {
     type: Number,
     default: 0
+  },
+  anonymous: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

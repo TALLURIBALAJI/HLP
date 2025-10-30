@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../theme.dart';
 import '../services/user_api_service.dart';
 import '../services/help_request_api_service.dart';
 import '../services/notification_service.dart';
+import '../services/api_config.dart';
+import 'my_posts_screen.dart';
+import 'my_donations_screen.dart';
+import 'my_events_screen.dart';
+import 'karma_history_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -17,6 +24,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   User? currentUser;
   Map<String, dynamic>? userData;
   int postsCount = 0;
+  int donationsCount = 0;
+  int eventsCount = 0;
   bool _isLoading = true;
 
   @override
@@ -41,13 +50,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final user = await UserApiService.getUserByFirebaseUid(currentUser!.uid);
       print('✅ User data: $user');
       
-      // Get user's posts count - the backend will filter by Firebase UID
+      // Get user's posts count
       final posts = await HelpRequestApiService.getUserPosts(currentUser!.uid);
       print('✅ Posts count: ${posts.length}');
+      
+      // Get user's donations count
+      int donCount = 0;
+      try {
+        final donResponse = await http.get(
+          Uri.parse('${ApiConfig.baseUrl}/donations?userId=${currentUser!.uid}'),
+        ).timeout(const Duration(seconds: 5));
+        if (donResponse.statusCode == 200) {
+          final donData = json.decode(donResponse.body);
+          donCount = (donData['data'] as List).length;
+          print('✅ Donations count: $donCount');
+        }
+      } catch (e) {
+        print('⚠️ Error loading donations: $e');
+      }
+      
+      // Get user's events count
+      int evtCount = 0;
+      try {
+        final evtResponse = await http.get(
+          Uri.parse('${ApiConfig.baseUrl}/events?organizerId=${currentUser!.uid}'),
+        ).timeout(const Duration(seconds: 5));
+        if (evtResponse.statusCode == 200) {
+          final evtData = json.decode(evtResponse.body);
+          evtCount = (evtData['data'] as List).length;
+          print('✅ Events count: $evtCount');
+        }
+      } catch (e) {
+        print('⚠️ Error loading events: $e');
+      }
       
       setState(() {
         userData = user;
         postsCount = posts.length;
+        donationsCount = donCount;
+        eventsCount = evtCount;
         _isLoading = false;
       });
     } catch (e) {
@@ -260,27 +301,126 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: EdgeInsets.all(12.0 * scale),
                 child: Row(children: [
                   Expanded(
-                    child: Container(
-                      padding: EdgeInsets.all(16 * scale),
-                      margin: EdgeInsets.only(right: 8 * scale),
-                      decoration: BoxDecoration(color: Color.fromARGB(255, 255, 244, 234), borderRadius: BorderRadius.circular(8)),
-                      child: Column(children: [
-                        Text('$karma', style: TextStyle(fontSize: 22 * scale, fontWeight: FontWeight.bold, color: Colors.orange)), 
-                        SizedBox(height: 6 * scale), 
-                        Text('Karma Points', style: TextStyle(color: Colors.orange, fontSize: (Theme.of(context).textTheme.bodySmall?.fontSize ?? 12) * scale))
-                      ]),
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const KarmaHistoryScreen(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: EdgeInsets.all(16 * scale),
+                        margin: EdgeInsets.only(right: 8 * scale),
+                        decoration: BoxDecoration(color: Color.fromARGB(255, 255, 244, 234), borderRadius: BorderRadius.circular(8)),
+                        child: Column(children: [
+                          Text('$karma', style: TextStyle(fontSize: 22 * scale, fontWeight: FontWeight.bold, color: Colors.orange)), 
+                          SizedBox(height: 6 * scale), 
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text('Karma Points', style: TextStyle(color: Colors.orange, fontSize: (Theme.of(context).textTheme.bodySmall?.fontSize ?? 12) * scale)),
+                              SizedBox(width: 4 * scale),
+                              Icon(Icons.arrow_forward, size: 14 * scale, color: Colors.orange),
+                            ],
+                          ),
+                        ]),
+                      ),
                     ),
                   ),
                   Expanded(
-                    child: Container(
-                      padding: EdgeInsets.all(16 * scale),
-                      margin: EdgeInsets.only(left: 8 * scale),
-                      decoration: BoxDecoration(color: Color.fromARGB(255, 235, 245, 255), borderRadius: BorderRadius.circular(8)),
-                      child: Column(children: [
-                        Text('$postsCount', style: TextStyle(fontSize: 22 * scale, fontWeight: FontWeight.bold, color: AppTheme.primary)), 
-                        SizedBox(height: 6 * scale), 
-                        Text('My Posts', style: TextStyle(color: AppTheme.primary, fontSize: (Theme.of(context).textTheme.bodySmall?.fontSize ?? 12) * scale))
-                      ]),
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MyPostsScreen(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: EdgeInsets.all(16 * scale),
+                        margin: EdgeInsets.only(left: 8 * scale),
+                        decoration: BoxDecoration(color: Color.fromARGB(255, 235, 245, 255), borderRadius: BorderRadius.circular(8)),
+                        child: Column(children: [
+                          Text('$postsCount', style: TextStyle(fontSize: 22 * scale, fontWeight: FontWeight.bold, color: AppTheme.primary)), 
+                          SizedBox(height: 6 * scale), 
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text('My Posts', style: TextStyle(color: AppTheme.primary, fontSize: (Theme.of(context).textTheme.bodySmall?.fontSize ?? 12) * scale)),
+                              SizedBox(width: 4 * scale),
+                              Icon(Icons.arrow_forward, size: 14 * scale, color: AppTheme.primary),
+                            ],
+                          ),
+                        ]),
+                      ),
+                    ),
+                  ),
+                ]),
+              ),
+
+              // Second row - My Donations and My Events
+              Padding(
+                padding: EdgeInsets.only(left: 12.0 * scale, right: 12.0 * scale, bottom: 12.0 * scale),
+                child: Row(children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MyDonationsScreen(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: EdgeInsets.all(16 * scale),
+                        margin: EdgeInsets.only(right: 8 * scale),
+                        decoration: BoxDecoration(color: Color.fromARGB(255, 240, 253, 244), borderRadius: BorderRadius.circular(8)),
+                        child: Column(children: [
+                          Text('$donationsCount', style: TextStyle(fontSize: 22 * scale, fontWeight: FontWeight.bold, color: Colors.green)), 
+                          SizedBox(height: 6 * scale), 
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text('My Donations', style: TextStyle(color: Colors.green, fontSize: (Theme.of(context).textTheme.bodySmall?.fontSize ?? 12) * scale)),
+                              SizedBox(width: 4 * scale),
+                              Icon(Icons.arrow_forward, size: 14 * scale, color: Colors.green),
+                            ],
+                          ),
+                        ]),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MyEventsScreen(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: EdgeInsets.all(16 * scale),
+                        margin: EdgeInsets.only(left: 8 * scale),
+                        decoration: BoxDecoration(color: Color.fromARGB(255, 252, 240, 255), borderRadius: BorderRadius.circular(8)),
+                        child: Column(children: [
+                          Text('$eventsCount', style: TextStyle(fontSize: 22 * scale, fontWeight: FontWeight.bold, color: Colors.purple)), 
+                          SizedBox(height: 6 * scale), 
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text('My Events', style: TextStyle(color: Colors.purple, fontSize: (Theme.of(context).textTheme.bodySmall?.fontSize ?? 12) * scale)),
+                              SizedBox(width: 4 * scale),
+                              Icon(Icons.arrow_forward, size: 14 * scale, color: Colors.purple),
+                            ],
+                          ),
+                        ]),
+                      ),
                     ),
                   ),
                 ]),

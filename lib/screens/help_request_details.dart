@@ -62,41 +62,7 @@ class _HelpRequestDetailsScreenState extends State<HelpRequestDetailsScreen> {
     }
   }
 
-  Future<void> _completeHelpRequest() async {
-    setState(() => _isProcessing = true);
-    
-    try {
-      await HelpRequestApiService.completeHelpRequest(widget.helpRequest['_id']);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('🎉 Help request completed! +20 Karma earned!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
-          ),
-        );
-        
-        // Refresh the screen
-        setState(() {
-          widget.helpRequest['status'] = 'completed';
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error completing request: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isProcessing = false);
-      }
-    }
-  }
+  // Complete function removed - only owner can complete from My Posts screen
 
   @override
   Widget build(BuildContext context) {
@@ -135,7 +101,9 @@ class _HelpRequestDetailsScreenState extends State<HelpRequestDetailsScreen> {
     // Get current user
     final currentUser = FirebaseAuth.instance.currentUser;
     final isOwnPost = currentUser?.uid == requesterId;
-    final isAcceptedByCurrentUser = acceptedBy == currentUser?.uid;
+    
+    // Check if post is anonymous
+    final isAnonymous = requesterId == 'anonymous' || requesterName == 'Anonymous';
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -233,7 +201,7 @@ class _HelpRequestDetailsScreenState extends State<HelpRequestDetailsScreen> {
                     icon: Icons.info_outline,
                     title: 'Status',
                     content: status.toUpperCase(),
-                    color: status == 'open' ? Colors.green : Colors.orange,
+                    color: status.toLowerCase() == 'open' ? Colors.green : Colors.orange,
                   ),
                   const SizedBox(height: 16),
 
@@ -296,7 +264,7 @@ class _HelpRequestDetailsScreenState extends State<HelpRequestDetailsScreen> {
                   const SizedBox(height: 32),
 
                   // Action Buttons based on status
-                  if (status == 'open' && !isOwnPost)
+                  if (status.toLowerCase() == 'open' && !isOwnPost)
                     // Accept Help Request Button (+10 Karma)
                     SizedBox(
                       width: double.infinity,
@@ -331,42 +299,9 @@ class _HelpRequestDetailsScreenState extends State<HelpRequestDetailsScreen> {
                       ),
                     ),
 
-                  if (status == 'accepted' && isAcceptedByCurrentUser)
-                    // Complete Help Request Button (+20 Karma)
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton.icon(
-                        onPressed: _isProcessing ? null : _completeHelpRequest,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 2,
-                        ),
-                        icon: _isProcessing
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.check_circle, color: Colors.white),
-                        label: Text(
-                          _isProcessing ? 'Completing...' : 'Mark as Completed (+20 Karma)',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
+                  // Complete button removed - only available in My Posts screen for post owner
 
-                  if (status == 'accepted' && isOwnPost)
+                  if (status.toLowerCase() == 'accepted' && isOwnPost)
                     // Info for requester waiting for completion
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -389,7 +324,7 @@ class _HelpRequestDetailsScreenState extends State<HelpRequestDetailsScreen> {
                       ),
                     ),
 
-                  if (status == 'completed')
+                  if (status.toLowerCase() == 'completed')
                     // Completed Badge
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -417,8 +352,8 @@ class _HelpRequestDetailsScreenState extends State<HelpRequestDetailsScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Message button (only if not own post and not completed)
-                  if (!isOwnPost && status != 'completed')
+                  // Message button (only if not own post, not anonymous, and not completed)
+                  if (!isOwnPost && !isAnonymous && status != 'completed' && requesterId.isNotEmpty)
                     SizedBox(
                       width: double.infinity,
                       height: 56,
