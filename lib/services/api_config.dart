@@ -46,18 +46,18 @@ class ApiConfig {
     if (Platform.isAndroid) {
       if (_usePhysicalDevice) {
         // Physical Android device - use computer's IP
-        return 'http://$_localIpAddress:3000/api';
+        return 'http://$_localIpAddress:10000/api';
       } else {
         // Android Emulator - use emulator address
-        return 'http://10.0.2.2:3000/api';
+        return 'http://10.0.2.2:10000/api';
       }
     } else if (Platform.isIOS) {
       // iOS Simulator can use localhost directly
-      return 'http://localhost:3000/api';
+      return 'http://localhost:10000/api';
     }
     
     // Default for other platforms
-    return 'http://$_localIpAddress:3000/api';
+    return 'http://$_localIpAddress:10000/api';
   }
   
   // Endpoints
