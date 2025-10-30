@@ -1,9 +1,24 @@
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load .env from backend directory (parent of src)
+dotenv.config({ path: join(__dirname, '../../.env') });
 
 const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
+
+// Debug: Check if credentials are loaded
+if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
+  console.warn('⚠️ OneSignal credentials not found in environment variables!');
+  console.warn('   ONESIGNAL_APP_ID:', ONESIGNAL_APP_ID ? '✓ Set' : '✗ Missing');
+  console.warn('   ONESIGNAL_REST_API_KEY:', ONESIGNAL_REST_API_KEY ? '✓ Set' : '✗ Missing');
+} else {
+  console.log('✅ OneSignal credentials loaded successfully');
+}
 
 /**
  * Send notification to all users

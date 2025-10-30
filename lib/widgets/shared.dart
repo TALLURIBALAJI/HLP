@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/dummy.dart';
 import '../theme.dart';
+import '../services/help_request_api_service.dart';
+import '../services/user_api_service.dart';
 import 'ui_components.dart';
 
 class HelpLinkBottomNav extends StatelessWidget {
@@ -99,31 +102,242 @@ class EmergencyDialog extends StatefulWidget {
 }
 
 class _EmergencyDialogState extends State<EmergencyDialog> {
-  final desc = TextEditingController();
-  final loc = TextEditingController();
+  final _descController = TextEditingController();
+  final _locController = TextEditingController();
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _descController.dispose();
+    _locController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendEmergencyAlert() async {
+    if (_descController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please describe the emergency'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (_locController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please provide location'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      // Import Firebase Auth at the top if not already imported
+      final currentUser = await _getCurrentUser();
+      
+      if (currentUser == null) {
+        throw Exception('User not logged in');
+      }
+
+      // Create emergency help request via API
+      final result = await _createEmergencyRequest(
+        firebaseUid: currentUser,
+        description: _descController.text.trim(),
+        location: _locController.text.trim(),
+      );
+
+      setState(() => _isSubmitting = false);
+
+      if (result != null && mounted) {
+        Navigator.of(context).pop(); // Close dialog
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('🚨 EMERGENCY ALERT SENT! Help is on the way!'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+
+        // Navigate to home feed to see the emergency post
+        Navigator.pushReplacementNamed(context, '/home', arguments: 0);
+      }
+    } catch (e) {
+      setState(() => _isSubmitting = false);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to send alert: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<String?> _getCurrentUser() async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      return currentUser?.uid;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> _createEmergencyRequest({
+    required String firebaseUid,
+    required String description,
+    required String location,
+  }) async {
+    try {
+      // Ensure user exists in MongoDB
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        await UserApiService.createOrUpdateUser(
+          firebaseUid: firebaseUid,
+          email: currentUser.email ?? '',
+          username: currentUser.displayName ?? 'User',
+          mobile: currentUser.phoneNumber ?? '',
+        );
+      }
+
+      // Create emergency help request with highest priority
+      final result = await HelpRequestApiService.createHelpRequest(
+        firebaseUid: firebaseUid,
+        title: '🚨 EMERGENCY: ${description.substring(0, description.length > 50 ? 50 : description.length)}',
+        description: description,
+        category: 'Emergency',
+        urgency: 'High',
+        location: {
+          'address': location,
+          'coordinates': [0.0, 0.0],
+        },
+        anonymous: false,
+      );
+
+      return result;
+    } catch (e) {
+      print('Error creating emergency request: $e');
+      rethrow;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Emergency Help'),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.destructive.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.warning_amber_rounded, color: AppTheme.destructive, size: 24),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text('Emergency Help', 
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Quick alert to community',
+            style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.normal),
+          ),
+        ],
+      ),
       content: SingleChildScrollView(
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: desc, decoration: const InputDecoration(labelText: 'Describe emergency')),
-            const SizedBox(height: 8),
-            TextField(controller: loc, decoration: const InputDecoration(labelText: 'Location (auto or manual)')),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                ElevatedButton.icon(
-                    onPressed: () {}, icon: const Icon(Icons.gps_fixed), label: const Text('Auto-detect')),
-                const SizedBox(width: 8),
-                GradientButton(onPressed: () => Navigator.of(context).pop(), child: Row(children: const [Icon(Icons.send, color: Colors.white), SizedBox(width: 8), Text('Send Alert')])),
-              ],
-            )
+            TextField(
+              controller: _descController,
+              decoration: InputDecoration(
+                labelText: 'Describe emergency *',
+                hintText: 'What help do you need urgently?',
+                prefixIcon: const Icon(Icons.emergency),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                filled: true,
+                fillColor: Colors.grey[50],
+              ),
+              maxLines: 3,
+              enabled: !_isSubmitting,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _locController,
+              decoration: InputDecoration(
+                labelText: 'Location *',
+                hintText: 'Enter your current location',
+                prefixIcon: const Icon(Icons.location_on),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                filled: true,
+                fillColor: Colors.grey[50],
+              ),
+              enabled: !_isSubmitting,
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange[200]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.orange[700], size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This will notify nearby community members immediately',
+                      style: TextStyle(fontSize: 11, color: Colors.orange[900]),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
+      actions: [
+        TextButton(
+          onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton.icon(
+          onPressed: _isSubmitting ? null : _sendEmergencyAlert,
+          icon: _isSubmitting
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Icon(Icons.send),
+          label: Text(_isSubmitting ? 'Sending...' : 'Send Alert'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.destructive,
+            foregroundColor: Colors.white,
+            minimumSize: const Size(120, 45),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -33,6 +33,9 @@ class ApiConfig {
   // AUTO-DETECTION (No need to modify below)
   // ========================================
   
+  // 📱 Set this to true when running on physical device
+  static const bool _usePhysicalDevice = true;  // ⬅️ SET TO true FOR PHYSICAL PHONE
+  
   static String get baseUrl {
     if (_useProduction) {
       // Production mode
@@ -41,9 +44,13 @@ class ApiConfig {
     
     // Local development mode
     if (Platform.isAndroid) {
-      // ALWAYS use emulator address for Android Emulator
-      // Use 10.0.2.2 to access host machine's localhost
-      return 'http://10.0.2.2:3000/api';
+      if (_usePhysicalDevice) {
+        // Physical Android device - use computer's IP
+        return 'http://$_localIpAddress:3000/api';
+      } else {
+        // Android Emulator - use emulator address
+        return 'http://10.0.2.2:3000/api';
+      }
     } else if (Platform.isIOS) {
       // iOS Simulator can use localhost directly
       return 'http://localhost:3000/api';
@@ -68,6 +75,7 @@ class ApiConfig {
     print('🌐 API Configuration:');
     print('   Platform: ${Platform.operatingSystem}');
     print('   Mode: ${_useProduction ? "PRODUCTION" : "LOCAL DEVELOPMENT"}');
+    print('   Device: ${_usePhysicalDevice ? "PHYSICAL DEVICE" : "EMULATOR"}');
     print('   Base URL: $baseUrl');
     print('   Local IP: $_localIpAddress');
   }
