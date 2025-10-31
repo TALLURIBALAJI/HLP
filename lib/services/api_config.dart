@@ -24,10 +24,10 @@ class ApiConfig {
   static const String _localIpAddress = '10.93.252.199';  // ⬅️ UPDATE THIS WITH YOUR IP
   
   // 🌐 Production server URL (when deployed to cloud)
-  static const String _productionUrl = 'https://your-app.herokuapp.com/api';  // ⬅️ UPDATE WHEN DEPLOYED
+  static const String _productionUrl = 'https://helplink-yc4h.onrender.com/api';  // ⬅️ Render.com production URL
   
   // 🔀 Switch between local and production
-  static const bool _useProduction = false;  // Set to true when using production server
+  static const bool _useProduction = true;  // Set to true when using production server
   
   // ========================================
   // AUTO-DETECTION (No need to modify below)
